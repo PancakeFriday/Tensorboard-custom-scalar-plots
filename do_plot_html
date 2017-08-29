@@ -1,0 +1,45 @@
+#!/bin/bash
+
+if [ -z "$NUM_LINES" ]
+then
+	NUM_LINES=2000
+fi
+
+# Get the files once, later we will only pause and reread
+DIAGRAMS=( $(python get_scalars.py --logdir=$1) )
+
+LOG_FILE=$(echo $1 | rev | cut -d '/' -f2 | rev)
+
+TEXT=""
+j=0
+for i in "${DIAGRAMS[@]}"; do
+	TEXT="$TEXT
+	set key left bottom;
+	set title \"$LOG_FILE - $i\";
+	set samples 1000;
+	set grid;
+	plot '< tail -n $NUM_LINES data_$i.csv' with lines title \"raw\", '< tail -n $NUM_LINES data_$i.csv' with lines smooth bezier title \"smooth\", '< tail -n 1 data_$i.csv | cut -f2 -d \",\"' title \"current\";
+	set nogrid;"
+
+	(( j++ ))
+done
+
+while true
+do
+	# get the files again
+	DIAGRAMS=( $(python get_scalars.py --logdir=$1) )
+
+	gnuplot -p -e "set terminal canvas;
+	set term canvas size 1300,600;
+	set output 'output.html';
+	set datafile separator\",\";
+	cols = ceil($j / 2.);
+	set multiplot layout 2,cols rowsfirst;
+	$TEXT
+	unset multiplot"
+
+	sed -i '7s/.*/<script src="canvastext.js"><\/script>/' output.html
+	sed -i '8s/.*/<script src="gnuplot_common.js"><\/script>/' output.html
+
+	sleep 60
+done
