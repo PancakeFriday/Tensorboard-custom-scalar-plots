@@ -38,8 +38,5 @@ do
 	$TEXT
 	unset multiplot"
 
-	sed -i '7s/.*/<script src="canvastext.js"><\/script>/' output.html
-	sed -i '8s/.*/<script src="gnuplot_common.js"><\/script>/' output.html
-
-	sleep 60
+	sleep 10
 done
